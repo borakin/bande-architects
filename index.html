@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>BANDE Mimarlık — Pikselden mekâna</title>
+    <meta name="description" content="Bursa merkezli mimarlık ofisi. BIM, restorasyon, rölöve, kentsel tasarım ve planlama. 2015'ten beri her yapıyı önce veriyle, sonra taşla düşünüyoruz." />
+    <meta name="theme-color" content="#0B0B0A" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BANDE Mimarlık — Pikselden mekâna" />
+    <meta property="og:description" content="Bursa, 2015. BIM, restorasyon, rölöve, kentsel tasarım, konut ve karma kullanım." />
+    <meta property="og:image" content="/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["Organization", "LocalBusiness"],
+        "name": "BANDE Mimarlık",
+        "alternateName": "BANDE Architects",
+        "foundingDate": "2015",
+        "description": "Architecture office in Bursa: BIM, restoration, measured survey, urban design and planning, housing and mixed use.",
+        "address": { "@type": "PostalAddress", "streetAddress": "Cadde224 Sitesi, Fatih Sultan Mehmet Blv. No:41/A, Workinton", "postalCode": "16140", "addressLocality": "Nilüfer", "addressRegion": "Bursa", "addressCountry": "TR" },
+        "telephone": "+90 224 451 33 63",
+        "email": "info@bandemimarlik.com",
+        "url": "https://www.bandemimarlik.com",
+        "sameAs": ["https://www.instagram.com/bandearchitects/", "https://www.youtube.com/@bandearchitects1956"],
+        "knowsAbout": ["BIM", "Restoration", "Measured survey", "Urban design", "Urban planning", "Housing", "Mixed use"]
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="gl" aria-hidden="true"></canvas>
+
+    <div class="loader" id="loader" role="status" aria-live="polite">
+      <div class="loader__grid" id="loaderGrid"></div>
+      <p class="loader__meta"><span data-t="ui.loading">Yükleniyor</span> <span id="loaderPct">00</span></p>
+    </div>
+
+    <header class="hud hud--top">
+      <a class="brand" href="#" aria-label="BANDE Mimarlık — başa dön">
+        <img src="/logo/mark.svg" alt="" width="88" height="16" />
+        <span class="brand__sub px">ARCHITECTS / BURSA</span>
+      </a>
+      <nav class="hud__right">
+        <span class="hud__count px" aria-hidden="true"><b id="chapterNo">01</b> / 07</span>
+        <button class="hud__btn" id="langBtn" type="button" aria-label="Dil / Language"><span class="is-on">TR</span> / <span>EN</span></button>
+        <button class="hud__btn" id="soundBtn" type="button" aria-pressed="false" data-t="ui.sound">Ses</button>
+        <button class="hud__btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu" data-t="ui.menu">Menü</button>
+      </nav>
+    </header>
+
+    <div class="hud hud--bottom" aria-hidden="true">
+      <p class="hud__label px" id="chapterLabel">01 — PIKSELDEN MEKANA</p>
+      <div class="hud__progress"><span id="progressBar"></span></div>
+      <p class="hud__hint px" data-t="ui.scroll">Kaydır</p>
+    </div>
+
+    <main class="film" id="film">
+      <!-- chapters are rendered from content.js; static fallback text lives here for no-JS / SEO -->
+      <noscript>
+        <h1>BANDE Mimarlık — Pikselden mekâna</h1>
+        <p>Bursa merkezli mimarlık ofisi. BIM, restorasyon, rölöve, kentsel tasarım ve planlama.</p>
+      </noscript>
+    </main>
+
+    <div class="labels" id="labels" aria-hidden="true"></div>
+
+    <section class="project" id="project" aria-hidden="true" aria-labelledby="projectTitle">
+      <div class="project__col">
+        <button class="project__back" id="projectBack" type="button">← <span data-t="ui.back">Arşive dön</span></button>
+        <p class="project__idx px" id="projectIdx">01 / 08</p>
+        <h2 class="project__title" id="projectTitle"></h2>
+        <dl class="project__meta" id="projectMeta"></dl>
+        <p class="project__summary" id="projectSummary"></p>
+        <div class="project__gallery" id="projectGallery"></div>
+        <button class="project__next" id="projectNext" type="button"><span data-t="ui.next">Sonraki proje</span> →</button>
+      </div>
+    </section>
+
+    <nav class="menu" id="menu" aria-hidden="true">
+      <ol class="menu__list" id="menuList"></ol>
+      <div class="menu__foot" id="menuFoot"></div>
+    </nav>
+
+    <div class="cursor" id="cursor" aria-hidden="true"><span id="cursorText"></span></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
