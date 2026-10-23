@@ -248,9 +248,12 @@ function hanSlots() {
 
 /* ───────── 7 · ARCHIVE ───────── */
 export const PLATES = (() => {
+  // one gallery wall: 4 columns x 2 rows, every project in view at once
   const list = [];
-  for (let k = 0; k < 8; k++) {
-    list.push({ x: -30 + k * 8.6, y: 3.65, z: k % 2 ? -1.6 : 0.8, yaw: (k % 2 ? 1 : -1) * 0.1, w: 5.2, h: 3.9 });
+  const colX = [-9.6, -3.2, 3.2, 9.6];
+  const rowY = [10.6, 3.65];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+    list.push({ x: colX[c], y: rowY[r], z: (c + r) % 2 ? -0.5 : 0.5, yaw: 0, w: 5.2, h: 3.9 });
   }
   return list;
 })();
@@ -262,6 +265,7 @@ function archive() {
   }
   // pedestals under each print
   for (const p of PLATES) {
+    if (p.y > 5) continue; // the upper row hangs free
     for (const dx of [-1.6, 1.6]) for (let f = 0; f < 3; f++) {
       out.push(S(p.x + dx * Math.cos(p.yaw), 0.18 + f * 0.48 + 0.24, p.z - 0.25 - dx * Math.sin(p.yaw), 0.42, 0.45, 0.42, vary(PAL.stoneWarm, 0.02), 0.85, 0, 0, -1, (p.x + 40) / 80));
     }

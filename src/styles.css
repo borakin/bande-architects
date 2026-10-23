@@ -122,10 +122,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .lbl--scan { margin: -46px 0 0 -1px; padding-left: 10px; border-left: 1px solid var(--ink); color: var(--ink); }
 .lbl--bim { margin: -8px 0 0 -120px; width: 108px; text-align: right; color: var(--ink-2); }
 .lbl--bim::after { content: ''; display: inline-block; width: 18px; height: 1px; background: var(--ink-2); vertical-align: 3px; margin-left: 8px; }
-.lbl--cap { display: flex; flex-direction: column; gap: 2px; pointer-events: auto; cursor: pointer; margin-top: 4px; }
+.lbl--cap { display: flex; flex-direction: column; gap: 2px; pointer-events: auto; cursor: pointer; margin-top: 4px; max-width: 15.5vw; }
 .lbl--cap .px { color: var(--ink-2); margin-bottom: 4px; }
-.lbl--cap b { font-weight: 500; font-size: 16px; letter-spacing: -0.02em; line-height: 1.1; }
-.lbl--cap em { font-style: normal; color: var(--ink-2); font-size: 13px; }
+.lbl--cap b { font-weight: 500; font-size: 16px; letter-spacing: -0.02em; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; }
+.lbl--cap em { font-style: normal; color: var(--ink-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
 
 /* ───────── pointer label over prints ───────── */
 .cursor { position: fixed; top: 0; left: 0; z-index: 30; pointer-events: none; opacity: 0; transition: opacity .3s ease; font-size: 13px; display: flex; align-items: center; gap: 8px; }

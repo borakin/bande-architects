@@ -89,13 +89,13 @@ export class Plates {
     }
   }
 
-  // reveal each print as the camera approaches it
+  // reveal the prints in sequence while the archive is on screen
   update(camX, visible, focusIndex, dt) {
     for (const it of this.items) { it.mat.uniforms.fogNear.value = this.fog.near; it.mat.uniforms.fogFar.value = this.fog.far; }
     this.group.visible = visible > 0.001;
     for (const it of this.items) {
-      const near = 1 - Math.min(1, Math.max(0, (Math.abs(it.P.x - camX - 4) - 6) / 10));
-      const target = visible * near;
+      // prints resolve one after another as the wall comes into view
+      const target = Math.min(1, Math.max(0, visible * 1.6 - it.face.userData.index * 0.09));
       it.reveal += (target - it.reveal) * Math.min(1, dt * 3.2);
       it.mat.uniforms.uReveal.value = it.reveal;
       const dim = focusIndex >= 0 && focusIndex !== it.face.userData.index ? 0 : 1;

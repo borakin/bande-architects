@@ -276,9 +276,7 @@ function routeFromHash() {
   const i = C.projects.findIndex((p) => p.slug === slug);
   if (i >= 0) {
     // move the film to the archive first so closing lands beside the print
-    const P = PLATES[i];
-    const t = (P.x - 4 + 37) / 60;
-    lenis.scrollTo((ARCHIVE.a + (ARCHIVE.b - ARCHIVE.a) * Math.min(1, Math.max(0, t))) * lenis.limit, { immediate: true, force: true });
+    lenis.scrollTo(((ARCHIVE.a + ARCHIVE.b) / 2) * lenis.limit, { immediate: true, force: true });
     openProject(i, true);
   } else closeProject();
 }
