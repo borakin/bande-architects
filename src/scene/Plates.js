@@ -74,7 +74,8 @@ export class Plates {
 
   tex(key) {
     if (this.cache.has(key)) return this.cache.get(key);
-    const t = this.loader.load(`/projects/${key}.webp`, () => this.onLoad && this.onLoad(key));
+    const done = () => this.onLoad && this.onLoad(key);
+    const t = this.loader.load(`${import.meta.env.BASE_URL}projects/${key}.webp`, done, undefined, done);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = 4;
     this.cache.set(key, t);
