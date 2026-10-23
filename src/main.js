@@ -9,15 +9,15 @@ import { gsap } from 'gsap';
 import { Vector3, Vector2, Raycaster, Plane, Box3 } from 'three';
 import { content } from './data/content.js';
 import { BANDE } from './data/logoGrid.js';
-import { buildStates, PLATES, FLOOR } from './scene/states.js';
+import { buildStates, FLOOR } from './scene/states.js';
 import { Voxels } from './scene/Voxels.js';
 import { World } from './scene/World.js';
-import { Plates } from './scene/Plates.js';
 import { ScanCloud } from './scene/ScanCloud.js';
 import {
-  CHAPTERS, MORPHS, SCAN, ARCHIVE, CITY_HOLD, cameraAt, sunAt, morphAt, band,
+  CHAPTERS, MORPHS, SCAN, ARCHIVE_HOLD, CITY_HOLD, cameraAt, sunAt, morphAt, band,
 } from './scene/Timeline.js';
 import { Narrative } from './ui/Narrative.js';
+import { Works } from './ui/Works.js';
 import { Sound } from './ui/Sound.js';
 
 const $ = (s) => document.querySelector(s);
@@ -28,12 +28,40 @@ let lang = 'tr';
 try { lang = localStorage.getItem('bande-lang') === 'en' ? 'en' : 'tr'; } catch (_) {}
 let C = content[lang];
 
-/* ───────── scroll spacer ───────── */
+/* ───────── scroll: film spacer, the works section, film spacer ─────────
+   The film holds at ARCHIVE_HOLD while the works grid scrolls past in the normal page flow, so the grid
+   scrolls and swipes like any page. pFromY / yFromP translate between scroll position and film progress. */
 const film = $('#film');
-const spacer = document.createElement('div');
-spacer.className = 'spacer';
-film.appendChild(spacer);
+const mkSpacer = () => { const d = document.createElement('div'); d.className = 'spacer'; return d; };
+const spacerA = mkSpacer(), spacerB = mkSpacer();
+const works = new Works({ reduced, onPick: (i, from) => openProject(i, { from }) });
+film.append(spacerA, works.el, spacerB);
 const narrative = new Narrative(film);
+const S = { Lf: 0, Y1: 0, Wh: 0, A: 0, B: 0, top: 0 };
+function layout() {
+  const vh = innerHeight;
+  S.Lf = 10.5 * vh;
+  S.Y1 = ARCHIVE_HOLD * S.Lf;
+  S.A = 0.07 * S.Lf; S.B = 0.115 * S.Lf;
+  S.Wh = works.el.offsetHeight;
+  S.top = S.Y1 + vh;
+  spacerA.style.height = `${S.top}px`;
+  spacerB.style.height = `${S.A + S.B}px`;
+  lenis && lenis.resize();
+}
+function pFromY(y) {
+  const { Lf, Y1, Wh, A, B } = S, e = Y1 + Wh;
+  if (y <= Y1) return y / Lf;
+  if (y <= e) return ARCHIVE_HOLD;
+  if (y <= e + A) return ARCHIVE_HOLD + ((y - e) / A) * (0.885 - ARCHIVE_HOLD);
+  return 0.885 + ((y - e - A) / B) * 0.115;
+}
+function yFromP(p) {
+  const { Lf, Y1, Wh, A, B } = S, e = Y1 + Wh;
+  if (p <= ARCHIVE_HOLD) return p * Lf;
+  if (p <= 0.885) return e + ((p - ARCHIVE_HOLD) / (0.885 - ARCHIVE_HOLD)) * A;
+  return e + A + ((p - 0.885) / 0.115) * B;
+}
 
 /* ───────── WebGL or graceful fallback ───────── */
 let world;
@@ -42,6 +70,7 @@ try {
 } catch (e) {
   document.body.classList.add('no-webgl');
   narrative.render(C);
+  works.render(C);
   $('#loader').remove();
   throw e;
 }
@@ -51,11 +80,6 @@ const voxels = new Voxels(states);
 world.scene.add(voxels.mesh, voxels.lines);
 const scan = new ScanCloud(mobile ? 26000 : 70000);
 world.scene.add(scan.points);
-
-let loadedTex = 0;
-const plates = new Plates(C.projects, () => { loadedTex++; });
-plates.bindFog(world.scene.fog);
-world.scene.add(plates.group);
 
 /* ───────── loader ───────── */
 const loaderGrid = $('#loaderGrid');
@@ -73,6 +97,7 @@ let shown = 0;
 const lenis = new Lenis({ lerp: reduced ? 1 : 0.1, wheelMultiplier: 1, touchMultiplier: 1.5, autoRaf: false });
 lenis.stop();
 gsap.ticker.lagSmoothing(0);
+new ResizeObserver(layout).observe(works.el);
 
 /* ───────── state ───────── */
 const pointer = new Vector2(0, 0), pointerPx = new Vector2(-999, -999);
@@ -86,9 +111,8 @@ const camPos = new Vector3(), camTgt = new Vector3(), basePos = new Vector3(), b
 const shift = new Vector2(), baseShift = new Vector2();
 const tmpV = new Vector3(), tmpV2 = new Vector3();
 const sun = { az: 0, el: 0, i: 0, amb: 0, color: new (world.sun.color.constructor)(), bg: new (world.sun.color.constructor)(), dusk: 0 };
-const view = { menu: 0, project: 0, intro: 0 };
-const projCam = { pos: new Vector3(), tgt: new Vector3() };
-let ps = 0, lastMix = 0, lastK = -1, hoverGroup = -1, hoverPlate = -1, openIndex = -1;
+const view = { menu: 0, intro: 0 };
+let ps = 0, lastMix = 0, lastK = -1, hoverGroup = -1, openIndex = -1;
 const dyn = { v: 0 };
 let firstFrame = true;
 
@@ -98,12 +122,6 @@ const mkLabel = (cls) => { const el = document.createElement('div'); el.classNam
 const parcelLabel = mkLabel('lbl--parcel');
 const scanLabel = mkLabel('lbl--scan');
 const bimLabels = (states[3].labels || []).map((l) => ({ ...l, el: mkLabel('lbl--bim') }));
-const captions = PLATES.map((P, i) => {
-  const el = mkLabel('lbl--cap');
-  el.addEventListener('click', () => openProject(i));
-  return { el, P, i };
-});
-
 function project(v) {
   v.project(world.camera);
   return { x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight, front: v.z < 1 };
@@ -129,16 +147,12 @@ function applyLang() {
   const lb = $('#langBtn').children;
   lb[0].classList.toggle('is-on', lang === 'tr'); lb[1].classList.toggle('is-on', lang === 'en');
   narrative.render(C);
-  captions.forEach((c, i) => {
-    const p = C.projects[i];
-    c.el.innerHTML = `<span class="px">${pad(i + 1)}</span><b>${p.title}</b><em>${p.place} · ${p.year}</em>`;
-  });
+  works.render(C);
   $('#menuList').innerHTML = C.chapters.map((ch, i) =>
     `<li><button type="button" data-i="${i}"><span class="px">${pad(i + 1)}</span>${ch.title.join(' ')}</button></li>`).join('');
   $('#menuFoot').innerHTML = `<a href="mailto:${C.contact.email}">${C.contact.email}</a><span>${C.contact.address.join(', ')}</span>`
     + C.contact.social.map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join('');
   bindMenu();
-  if (openIndex >= 0) fillProject(openIndex);
   sound && ($('#soundBtn').textContent = sound.on ? C.ui.soundOn : C.ui.sound);
 }
 $('#langBtn').addEventListener('click', () => {
@@ -175,7 +189,7 @@ function setMenu(open) {
   }
   else if (!menu.picked) lenis.scrollTo(menuOrigin, { duration: 1.4 });
 }
-const holdScroll = (i) => Math.max(0, Math.min(1, CHAPTERS[i].hold)) * lenis.limit;
+const holdScroll = (i) => (CHAPTERS[i].id === 'archive' ? S.top : yFromP(Math.max(0, Math.min(1, CHAPTERS[i].hold))));
 function bindMenu() {
   menu.querySelectorAll('button[data-i]').forEach((b) => {
     const i = +b.dataset.i;
@@ -187,97 +201,33 @@ function bindMenu() {
 $('#menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('is-open')));
 document.querySelector('.brand').addEventListener('click', (e) => { e.preventDefault(); closeProject(); setMenu(false); lenis.scrollTo(0, { duration: 2.4 }); });
 
-/* ───────── project view: the camera walks up to a print and it becomes the page ───────── */
-const proj = $('#project');
-function fillProject(i) {
-  const p = C.projects[i];
-  $('#projectIdx').textContent = `${pad(i + 1)} / ${pad(C.projects.length)}`;
-  $('#projectTitle').textContent = p.title;
-  const L = lang === 'tr'
-    ? [['Yer', p.place], ['Yıl', p.year], ['Tür', p.type], ['Alan', p.area], ['Rol', p.role]]
-    : [['Place', p.place], ['Year', p.year], ['Type', p.type], ['Area', p.area], ['Role', p.role]];
-  if (p.award) L.push([lang === 'tr' ? 'Ödül' : 'Award', p.award]);
-  if (p.photo) L.push([lang === 'tr' ? 'Fotoğraf' : 'Photo', p.photo]);
-  $('#projectMeta').innerHTML = L.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-  $('#projectSummary').textContent = p.summary;
-  $('#projectGallery').innerHTML = p.gallery.map((g, j) =>
-    `<button type="button" data-g="${g}" class="${j === 0 ? 'is-on' : ''}" aria-label="${pad(j + 1)}">${pad(j + 1)}</button>`).join('');
-  $('#projectGallery').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-    $('#projectGallery').querySelectorAll('button').forEach((x) => x.classList.toggle('is-on', x === b));
-    swapImage(i, b.dataset.g);
-  }));
-}
-function swapImage(i, key) {
-  const it = plates.items[i];
-  const u = it.mat.uniforms;
-  u.uTex2.value = plates.tex(key);
-  gsap.killTweensOf(u.uSwap);
-  u.uSwap.value = 0;
-  gsap.to(u.uSwap, { value: 1, duration: reduced ? 0.01 : 1.1, ease: 'power2.inOut', onComplete: () => { u.uTex.value = u.uTex2.value; u.uSwap.value = 0; } });
-}
-function projectPose(i) {
-  const P = PLATES[i];
-  const n = tmpV.set(Math.sin(P.yaw), 0, Math.cos(P.yaw));
-  const right = tmpV2.set(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
-  const cam = world.camera, fov = cam.fov * Math.PI / 180, a = cam.aspect;
-  const portrait = a < 1;
-  const fill = portrait ? 0.9 : 0.74;
-  const dH = (P.h / 2) / Math.tan(fov / 2) / fill;
-  const dW = (P.w / 2) / (Math.tan(fov / 2) * a) / fill;
-  // landscape: the print takes the right ~56% so the case text keeps its column
-  const dW56 = (P.w / 2) / (Math.tan(fov / 2) * a * 0.52);
-  const d = portrait ? dW : Math.max(dH, dW56);
-  const visW = 2 * d * Math.tan(fov / 2) * a, visH = 2 * d * Math.tan(fov / 2);
-  const c = new Vector3(P.x, P.y, P.z);
-  const shift = new Vector3();
-  if (portrait) shift.set(0, -visH * 0.2, 0); else shift.copy(right).multiplyScalar(-visW * 0.225);
-  projCam.tgt.copy(c).add(shift);
-  projCam.pos.copy(c).addScaledVector(n, d).add(shift);
-}
-function openProject(i, instant = false) {
-  if (i < 0 || i >= PLATES.length) return;
+/* ───────── case view: a card opens into the full project ───────── */
+function openProject(i, { from, instant } = {}) {
+  if (i < 0 || i >= C.projects.length) return;
   setMenu(false);
-  const wasOpen = openIndex >= 0;
   openIndex = i;
-  fillProject(i);
   if (location.hash !== `#/${C.projects[i].slug}`) history.pushState(null, '', `#/${C.projects[i].slug}`);
   lenis.stop();
   document.body.classList.add('project-open');
-  proj.setAttribute('aria-hidden', 'false');
-  const from = { pos: projCam.pos.clone(), tgt: projCam.tgt.clone() };
-  projectPose(i);
-  if (wasOpen) {
-    const to = { pos: projCam.pos.clone(), tgt: projCam.tgt.clone() };
-    const o = { t: 0 };
-    gsap.to(o, {
-      t: 1, duration: 1.4, ease: 'power3.inOut',
-      onUpdate: () => { projCam.pos.lerpVectors(from.pos, to.pos, o.t); projCam.tgt.lerpVectors(from.tgt, to.tgt, o.t); },
-    });
-  }
-  gsap.to(view, { project: 1, duration: instant || reduced ? 0.01 : 1.6, ease: 'power3.inOut' });
-  plates.items[i].reveal = Math.max(plates.items[i].reveal, 0.6);
-  setTimeout(() => $('#projectBack').focus({ preventScroll: true, focusVisible: false }), 700);
+  works.open(i, { from, instant });
+  setTimeout(() => $('#caseBack').focus({ preventScroll: true, focusVisible: false }), 700);
 }
 function closeProject() {
   if (openIndex < 0) return;
-  const i = openIndex;
   openIndex = -1;
   document.body.classList.remove('project-open');
-  proj.setAttribute('aria-hidden', 'true');
   if (location.hash.startsWith('#/')) history.pushState(null, '', location.pathname);
-  gsap.to(view, { project: 0, duration: reduced ? 0.01 : 1.5, ease: 'power3.inOut', onComplete: () => lenis.start() });
-  const it = plates.items[i];
-  if (it.mat.uniforms.uTex.value !== plates.tex(C.projects[i].img)) swapImage(i, C.projects[i].img);
+  works.close(() => lenis.start());
 }
-$('#projectBack').addEventListener('click', closeProject);
-$('#projectNext').addEventListener('click', () => openProject((openIndex + 1) % PLATES.length));
+$('#caseBack').addEventListener('click', closeProject);
+$('#caseNext').addEventListener('click', () => openProject((openIndex + 1) % C.projects.length));
 function routeFromHash() {
   const slug = location.hash.replace('#/', '');
   const i = C.projects.findIndex((p) => p.slug === slug);
   if (i >= 0) {
-    // move the film to the archive first so closing lands beside the print
-    lenis.scrollTo(((ARCHIVE.a + ARCHIVE.b) / 2) * lenis.limit, { immediate: true, force: true });
-    openProject(i, true);
+    // put the page at the works section first so closing lands beside the card
+    lenis.scrollTo(S.top, { immediate: true, force: true });
+    openProject(i, { instant: true });
   } else closeProject();
 }
 window.addEventListener('popstate', routeFromHash);
@@ -289,12 +239,6 @@ window.addEventListener('pointermove', (e) => {
   pointerPx.set(e.clientX, e.clientY);
 }, { passive: true });
 window.addEventListener('pointerleave', () => { hasPointer = false; });
-const cursor = $('#cursor'), cursorText = $('#cursorText');
-// the scroll spacer sits above the canvas, so picks are resolved from the window
-window.addEventListener('click', (e) => {
-  if (e.target.closest('a, button, .lbl--cap, .project__col, .menu, .hud')) return;
-  if (hoverPlate >= 0 && openIndex < 0) openProject(hoverPlate);
-});
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { if (openIndex >= 0) closeProject(); else setMenu(false); return; }
   if (openIndex >= 0 || menu.classList.contains('is-open')) return;
@@ -303,7 +247,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'PageUp' || (e.key === 'ArrowUp' && e.altKey)) { e.preventDefault(); lenis.scrollTo(holdScroll(Math.max(0, cur - 1)), { duration: 2 }); }
 });
 let rt;
-window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { world.resize(); if (openIndex >= 0) projectPose(openIndex); }, 120); });
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { world.resize(); layout(); }, 120); });
 
 /* ───────── adaptive quality ───────── */
 let slow = 0, quality = 2;
@@ -324,7 +268,7 @@ let lastChapter = -1, time = 0;
 function frame(dt, raw = dt) {
   time += dt;
   lenis.raf(time * 1000);
-  const p = lenis.limit > 0 ? lenis.scroll / lenis.limit : 0;
+  const p = lenis.limit > 0 ? pFromY(lenis.scroll) : 0;
   ps = firstFrame || reduced ? p : ps + (p - ps) * (1 - Math.exp(-dt * 14));
   firstFrame = false;
 
@@ -352,10 +296,9 @@ function frame(dt, raw = dt) {
   const vel = reduced ? 0 : (lenis.velocity || 0);
   dyn.v += (Math.max(-70, Math.min(70, vel)) - dyn.v) * (1 - Math.exp(-dt * 4));
   {
-    const calm = 1 - view.project;
     const off = tmpV.subVectors(basePos, baseTgt);
-    off.applyAxisAngle(Y_AXIS, (dyn.v * 0.0024 + Math.sin(time * 0.17) * 0.035) * calm);
-    off.multiplyScalar(1 + Math.abs(dyn.v) * 0.0016 * calm);
+    off.applyAxisAngle(Y_AXIS, (dyn.v * 0.0024 + Math.sin(time * 0.17) * 0.035));
+    off.multiplyScalar(1 + Math.abs(dyn.v) * 0.0016);
     basePos.copy(baseTgt).add(off);
   }
   const aspect = innerWidth / innerHeight;
@@ -367,26 +310,22 @@ function frame(dt, raw = dt) {
     const off = tmpV.subVectors(basePos, baseTgt);
     const len = off.length();
     const side = tmpV2.set(off.z, 0, -off.x).normalize();
-    basePos.addScaledVector(side, pointer.x * len * 0.018 * (1 - view.project));
-    basePos.y += pointer.y * len * 0.012 * (1 - view.project);
+    basePos.addScaledVector(side, pointer.x * len * 0.018);
+    basePos.y += pointer.y * len * 0.012;
   }
-  if (view.project > 0) {
-    basePos.lerp(projCam.pos, view.project);
-    baseTgt.lerp(projCam.tgt, view.project);
-  }
-  const k = 1 - Math.exp(-dt * (view.project > 0 && view.project < 1 ? 60 : 9));
+  const k = 1 - Math.exp(-dt * 9);
   camPos.lerp(basePos, k); camTgt.lerp(baseTgt, k);
   if (view.intro < 1 && camPos.lengthSq() === 0) { camPos.copy(basePos); camTgt.copy(baseTgt); }
   world.camera.position.copy(camPos);
   world.camera.lookAt(camTgt);
   // lens shift keeps the model clear of the type; portrait screens stack type above/below instead
-  const keep = (1 - view.project) * (1 - view.menu * 0.6);
+  const keep = 1 - view.menu * 0.6;
   baseShift.multiplyScalar(keep);
   baseShift.x += view.menu * 0.2;
   if (aspect < 1) baseShift.set(0.3 * band(ps, 0.69, 0.885, 0.02), -0.03 * keep);
   shift.lerp(baseShift, k);
   const W = innerWidth, H = innerHeight;
-  world.camera.fov = world.baseFov + Math.min(4, Math.abs(dyn.v) * 0.05) * (1 - view.project);
+  world.camera.fov = world.baseFov + Math.min(4, Math.abs(dyn.v) * 0.05);
   world.camera.setViewOffset(W, H, -shift.x * W, -shift.y * H, W, H);
 
   // light and air
@@ -403,18 +342,13 @@ function frame(dt, raw = dt) {
   voxels.lineUniforms.uLines.value = 0.42 + 0.5 * xray;
   voxels.lineUniforms.uFogNear.value = world.scene.fog.near;
   voxels.lineUniforms.uFogFar.value = world.scene.fog.far;
-  voxels.uniforms.uSink.value = view.project;
   world.groundUniforms.uGrid.value = 0.3 + 0.7 * Math.max(band(ps, 0.1, 0.225, 0.04), band(ps, 0.355, 0.47, 0.03));
 
   // survey
   const sweep = Math.min(1, Math.max(0, (ps - SCAN.a) / (SCAN.b - SCAN.a)));
   scan.update(sweep, band(ps, SCAN.a - 0.005, 0.605, 0.03), world.renderer.getPixelRatio());
 
-  // archive
-  const archV = band(ps, 0.672, 0.895, 0.025);
-  plates.update(camPos.x, archV, openIndex, dt);
-
-  // pointer in the world: lift blocks on the logo, read parcels in the city, pick prints in the archive
+  // pointer in the world: lift blocks on the logo, read parcels in the city, 
   ray.setFromCamera(pointer, world.camera);
   hoverGroup = -1;
   const logoAmt = band(ps, -1, 0.042, 0.03) + band(ps, 0.955, 2, 0.03);
@@ -443,18 +377,6 @@ function frame(dt, raw = dt) {
     place(parcelLabel, s.x, s.y, cityAmt);
   } else place(parcelLabel, 0, 0, 0);
 
-  hoverPlate = -1;
-  if (archV > 0.5 && openIndex < 0 && hasPointer && !menu.classList.contains('is-open')) {
-    const hit = ray.intersectObjects(plates.faces, false)[0];
-    if (hit) hoverPlate = hit.object.userData.index;
-  }
-  plates.items.forEach((it, i) => { it.hovered = i === hoverPlate; });
-  document.body.classList.toggle('over-plate', hoverPlate >= 0);
-  if (hoverPlate >= 0) {
-    cursorText.textContent = C.ui.view;
-    cursor.style.transform = `translate3d(${pointerPx.x + 18}px, ${pointerPx.y + 18}px, 0)`;
-  }
-
   // labels
   const bimV = band(ps, 0.392, 0.448, 0.02);
   bimLabels.forEach((l, j) => {
@@ -469,14 +391,6 @@ function frame(dt, raw = dt) {
     scanLabel.innerHTML = `X ${scanX.toFixed(2)}<br>${(sweep * 4.2).toFixed(2)}M PTS`;
     place(scanLabel, s.x, s.y, sv);
   } else place(scanLabel, 0, 0, 0);
-  captions.forEach((c) => {
-    const s = project(tmpV.set(c.P.x - c.P.w / 2 * Math.cos(c.P.yaw), c.P.y - c.P.h / 2 - 0.5, c.P.z + c.P.w / 2 * Math.sin(c.P.yaw)));
-    const r = plates.items[c.i].reveal;
-    const o = archV * (s.front ? 1 : 0) * Math.max(0, r * 1.4 - 0.4) * (1 - view.project);
-    place(c.el, s.x, s.y, o);
-    c.el.style.pointerEvents = o > 0.6 ? 'auto' : 'none';
-  });
-
   // text + hud
   const vh = innerHeight;
   const active = narrative.update(ps, vh, Math.min(1, Math.max(0, (view.intro - 0.55) / 0.45)));
@@ -494,19 +408,20 @@ function frame(dt, raw = dt) {
 /* ───────── boot ───────── */
 async function boot() {
   applyLang();
+  layout();
+  works.watch();
   // first compile happens behind the loader
   cameraAt(0, camPos, camTgt);
   world.camera.position.copy(camPos); world.camera.lookAt(camTgt);
   voxels.setTransition(0, MORPHS[0].spread);
   const steps = [
     document.fonts.ready,
-    new Promise((r) => { const chk = () => (loadedTex >= PLATES.length ? r() : setTimeout(chk, 60)); chk(); }),
     new Promise((r) => setTimeout(r, reduced ? 200 : 1600)),
   ];
   let done = 0;
   steps.forEach((s) => s.then(() => { done++; }));
   const tickLoader = () => {
-    const target = Math.round(((done / steps.length) * 0.8 + Math.min(loadedTex / PLATES.length, 1) * 0.2) * cells.length);
+    const target = Math.round((done / steps.length) * cells.length);
     while (shown < target) cells[shown++].classList.add('lit');
     loaderPct.textContent = pad(Math.round((shown / cells.length) * 100)).slice(-3);
   };
@@ -528,11 +443,11 @@ async function boot() {
 boot();
 if (import.meta.env.DEV) {
   window.__bande = {
-    world, voxels, states, plates, scan, lenis, view, get ps() { return ps; },
+    world, voxels, states, works, scan, lenis, view, get ps() { return ps; },
     // jump the film to progress p and settle it (for inspection while the pane is in the background)
     async at(p, frames = 40) {
       view.intro = 1; lenis.start();
-      lenis.scrollTo(p * lenis.limit, { immediate: true, force: true });
+      lenis.scrollTo(yFromP(p), { immediate: true, force: true });
       for (let i = 0; i < frames; i++) frame(1 / 30);
       await new Promise((r) => setTimeout(r, 350));
       frame(1 / 30);

@@ -247,28 +247,12 @@ function hanSlots() {
 }
 
 /* ───────── 7 · ARCHIVE ───────── */
-export const PLATES = (() => {
-  // one gallery wall: 4 columns x 2 rows, every project in view at once
-  const list = [];
-  const colX = [-9.6, -3.2, 3.2, 9.6];
-  const rowY = [10.6, 3.65];
-  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
-    list.push({ x: colX[c], y: rowY[r], z: (c + r) % 2 ? -0.5 : 0.5, yaw: 0, w: 5.2, h: 3.9 });
-  }
-  return list;
-})();
+// a quiet stone yard: the selected works themselves live in the page, over it
 function archive() {
   const out = [];
   // walkway
   for (let x = -40; x <= 40; x += 1.7) for (const z of [-2.55, -0.85, 0.85, 2.55]) {
     out.push(S(x, 0.09, z, 1.64, 0.18, 1.64, vary(PAL.stone, 0.03), 0.9, 0, 0, -1, (x + 40) / 80));
-  }
-  // pedestals under each print
-  for (const p of PLATES) {
-    if (p.y > 5) continue; // the upper row hangs free
-    for (const dx of [-1.6, 1.6]) for (let f = 0; f < 3; f++) {
-      out.push(S(p.x + dx * Math.cos(p.yaw), 0.18 + f * 0.48 + 0.24, p.z - 0.25 - dx * Math.sin(p.yaw), 0.42, 0.45, 0.42, vary(PAL.stoneWarm, 0.02), 0.85, 0, 0, -1, (p.x + 40) / 80));
-    }
   }
   // stone garden fading into the haze
   for (let x = -44; x <= 44; x += 1.7) for (const z of [-13.6, -11.9, -10.2, -8.5, -6.8, -5.1, 5.1, 6.8, 8.5]) {

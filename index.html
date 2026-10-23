@@ -67,15 +67,18 @@
 
     <div class="labels" id="labels" aria-hidden="true"></div>
 
-    <section class="project" id="project" aria-hidden="true" aria-labelledby="projectTitle">
-      <div class="project__col">
-        <button class="project__back" id="projectBack" type="button">← <span data-t="ui.back">Arşive dön</span></button>
-        <p class="project__idx px" id="projectIdx">01 / 08</p>
-        <h2 class="project__title" id="projectTitle"></h2>
-        <dl class="project__meta" id="projectMeta"></dl>
-        <p class="project__summary" id="projectSummary"></p>
-        <div class="project__gallery" id="projectGallery"></div>
-        <button class="project__next" id="projectNext" type="button"><span data-t="ui.next">Sonraki proje</span> →</button>
+    <section class="case" id="case" aria-hidden="true" aria-labelledby="caseTitle" data-lenis-prevent>
+      <div class="case__wrap" id="caseWrap">
+        <figure class="case__hero" id="caseHero"></figure>
+        <div class="case__side" id="caseSide">
+          <button class="case__back" id="caseBack" type="button">← <span data-t="ui.back">Arşive dön</span></button>
+          <p class="case__idx px" id="caseIdx"></p>
+          <h2 class="case__title" id="caseTitle"></h2>
+          <dl class="case__meta" id="caseMeta"></dl>
+          <p class="case__summary" id="caseSummary"></p>
+        </div>
+        <div class="case__media" id="caseMedia"></div>
+        <button class="case__next" id="caseNext" type="button"><span data-t="ui.next">Sonraki proje</span><b id="caseNextTitle"></b></button>
       </div>
     </section>
 
@@ -83,8 +86,6 @@
       <ol class="menu__list" id="menuList"></ol>
       <div class="menu__foot" id="menuFoot"></div>
     </nav>
-
-    <div class="cursor" id="cursor" aria-hidden="true"><span id="cursorText"></span></div>
 
     <script type="module" src="/src/main.js"></script>
   </body>
