@@ -89,7 +89,11 @@ export class Works {
     // the card's picture is already loaded: show it under the large photograph until that arrives
     this.q('#caseHero').style.backgroundImage = `url("${photo(p.img)}")`;
     this.q('#caseMedia').innerHTML = p.gallery.slice(1).map(fig).join('');
-    this.q('#caseNextTitle').textContent = C.projects[(i + 1) % C.projects.length].title;
+    const j = (i + 1) % C.projects.length, n = C.projects[j];
+    this.q('#caseNextTitle').textContent = n.title;
+    this.q('#caseNextIdx').textContent = `${pad(j + 1)} / ${pad(C.projects.length)}`;
+    this.q('#caseNextMeta').textContent = [n.place, n.year, n.type].filter(Boolean).join(' · ');
+    this.q('#caseNextImg').src = photo(n.img);
   }
 
   get isOpen() { return this.c.classList.contains('is-open'); }

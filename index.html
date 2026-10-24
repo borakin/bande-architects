@@ -79,8 +79,16 @@
           <p class="case__summary" id="caseSummary"></p>
         </div>
         <div class="case__media" id="caseMedia"></div>
-        <button class="case__next" id="caseNext" type="button"><span data-t="ui.next">Sonraki proje</span><b id="caseNextTitle"></b></button>
       </div>
+      <!-- outside the grid, so the sticky text column stops before it -->
+      <button class="case__next" id="caseNext" type="button">
+        <span class="case__nextImg"><img id="caseNextImg" alt="" decoding="async" loading="lazy"></span>
+        <span class="case__nextTxt">
+          <span class="case__nextLbl"><span data-t="ui.next">Sonraki proje</span> <span id="caseNextIdx"></span> <i aria-hidden="true">→</i></span>
+          <b id="caseNextTitle"></b>
+          <em id="caseNextMeta"></em>
+        </span>
+      </button>
     </section>
 
     <nav class="menu" id="menu" aria-hidden="true">
