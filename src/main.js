@@ -212,14 +212,16 @@ $('#menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('
 document.querySelector('.brand').addEventListener('click', (e) => { e.preventDefault(); closeProject(); setMenu(false); lenis.scrollTo(0, { duration: 2.4 }); });
 
 /* ───────── scroll from content to content ─────────
-   Between two chapters there is nothing to read, so one wheel turn or swipe glides the page to the next
-   chapter, or into the works section. Input during the glide, and the tail of that same gesture, is ignored.
-   Inside the works section the page scrolls freely, like any page. */
+   The wheel scrolls freely. Once the page is within the last 30% of the way to the next stop (a chapter,
+   or an edge of the works grid), it takes over and finishes the move itself at a slow, even speed.
+   Input during that glide, and the tail of the same gesture, is ignored. Going up works the same way.
+   Inside the works grid the page scrolls freely, like any page, and stops at the grid's edges. */
 const snap = { busy: false, armed: true, last: 0 };
-const SNAP_SPEED = 0.7; // 1 = the original glide; lower is slower
-const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const TAKEOVER = 0.3;    // share of the way left when the page takes over
+const GLIDE_SPEED = 0.35; // viewport heights per second during the take-over
 function stops() {
-  return CHAPTERS.map((c) => (c.id === 'archive' ? S.top : yFromP(Math.max(0, Math.min(1, c.hold)))));
+  const top = S.top, end = S.top + Math.max(0, S.Wh - innerHeight);
+  return CHAPTERS.flatMap((c) => (c.id === 'archive' ? (end > top + 4 ? [top, end] : [top]) : [yFromP(Math.max(0, Math.min(1, c.hold)))]));
 }
 function scrollGate({ deltaX, deltaY, event }) {
   if (view.intro < 1 || openIndex >= 0 || menu.classList.contains('is-open') || !(S.Lf > 0)) return true;
@@ -230,26 +232,33 @@ function scrollGate({ deltaX, deltaY, event }) {
   if (snap.busy) return block();
   if (!snap.armed) { if (!quiet) return block(); snap.armed = true; }
   if (Math.abs(deltaX) > Math.abs(deltaY) || Math.abs(deltaY) < 1) return true;
-  const y = lenis.targetScroll, dir = Math.sign(deltaY);
+  const y = lenis.targetScroll, dir = Math.sign(deltaY), next = y + deltaY;
   const top = S.top, end = S.top + Math.max(0, S.Wh - innerHeight);
   if (y > top - 2 && y < end + 2 && !(dir < 0 && y <= top + 2) && !(dir > 0 && y >= end - 2)) {
     // a free step that would run past the grid stops at its edge; the next turn carries on from there
     const edge = dir > 0 ? end : top;
-    if ((y + deltaY - edge) * dir <= 0) return true;
+    if ((next - edge) * dir <= 0) return true;
     lenis.scrollTo(edge);
     return block();
   }
+  // the stretch between the stop behind and the stop ahead, in the direction of travel
   const st = stops();
-  let target = dir > 0 ? (st.find((s) => s > y + 4) ?? lenis.limit) : ([...st].reverse().find((s) => s < y - 4) ?? 0);
-  if (dir < 0 && target === top && y > end + 4) target = end; // coming back up, land on the last row of works
-  if (Math.abs(target - y) < 4) return true;
+  const a = dir > 0 ? ([...st].reverse().find((v) => v <= y + 1) ?? 0) : ([...st].reverse().find((v) => v < y - 1) ?? 0);
+  const b = dir > 0 ? (st.find((v) => v > y + 1) ?? lenis.limit) : (st.find((v) => v >= y - 1) ?? lenis.limit);
+  if (b - a < 4) return true;
+  const f = (Math.min(b, Math.max(a, next)) - a) / (b - a);
+  const target = dir > 0 ? (f >= 1 - TAKEOVER ? b : null) : (f <= TAKEOVER ? a : null);
+  if (target === null) return true;
   snap.busy = true; snap.armed = false;
-  const dist = Math.abs(target - lenis.scroll);
-  lenis.scrollTo(target, {
-    duration: reduced ? 0.01 : Math.min(2.4, Math.max(1.1, (dist / innerHeight) * 0.45)) / SNAP_SPEED,
-    easing: ease, lock: true, force: true,
+  // the visitor's own scroll still carries the page to the 70% mark; only the last 30% is the slow glide
+  const cut = dir > 0 ? a + (1 - TAKEOVER) * (b - a) : a + TAKEOVER * (b - a);
+  const glide = () => lenis.scrollTo(target, {
+    duration: reduced ? 0.01 : Math.max(0.4, Math.abs(target - lenis.scroll) / (innerHeight * GLIDE_SPEED)),
+    easing: (t) => t, lock: true, force: true,
     onComplete: () => { snap.busy = false; },
   });
+  if ((cut - lenis.scroll) * dir > 4) lenis.scrollTo(cut, { lock: true, force: true, onComplete: glide });
+  else glide();
   return block();
 }
 
