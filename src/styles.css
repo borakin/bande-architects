@@ -203,11 +203,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* ───────── menu ───────── */
 .menu { position: fixed; inset: 0; z-index: 18; pointer-events: none; visibility: hidden; padding: var(--m); }
 .menu.is-open { visibility: visible; pointer-events: auto; }
-.menu__list { list-style: none; position: absolute; top: 17vh; left: var(--m); }
+.menu__list { list-style: none; position: absolute; top: 17vh; right: var(--m); text-align: right; }
 .menu__list li { overflow: hidden; }
 .menu__list button {
-  display: flex; align-items: flex-start; gap: 18px; font-size: clamp(34px, 5.2vw, 88px); font-weight: 500; letter-spacing: -0.05em; line-height: 1.02;
-  text-align: left; transform: translateY(105%); transition: transform .9s cubic-bezier(.2,.7,.1,1), color .3s ease;
+  display: flex; justify-content: flex-end; width: 100%; align-items: flex-start; gap: 18px; font-size: clamp(34px, 5.2vw, 88px); font-weight: 500; letter-spacing: -0.05em; line-height: 1.02;
+  text-align: right; transform: translateY(105%); transition: transform .9s cubic-bezier(.2,.7,.1,1), color .3s ease;
 }
 .menu__list button .px { font-size: 10px; letter-spacing: .08em; margin-top: 1.4em; color: var(--ink-2); }
 .menu.is-open .menu__list button { transform: none; }
@@ -216,7 +216,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .menu__list li:nth-child(6) button { transition-delay: .2s; } .menu__list li:nth-child(7) button { transition-delay: .24s; }
 .menu__list:hover button { color: rgba(233,231,226,.26); }
 .menu__list button:hover, .menu__list button:focus-visible { color: var(--ink); }
-.menu__foot { position: absolute; left: var(--m); bottom: 12vh; display: flex; gap: 32px; font-size: 13px; opacity: 0; transition: opacity .6s ease .3s; }
+.menu__foot { position: absolute; right: var(--m); bottom: 12vh; display: flex; justify-content: flex-end; gap: 32px; text-align: right; font-size: 13px; opacity: 0; transition: opacity .6s ease .3s; }
 .menu.is-open .menu__foot { opacity: 1; }
 .menu__foot a { border-bottom: 1px solid var(--ink); }
 .menu-open .film, .menu-open .labels { opacity: 0; transition: opacity .5s ease; }
@@ -248,7 +248,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .ch__social { justify-content: flex-start; }
   .hud__label { display: none; }
   .menu__list { top: 15vh; }
-  .menu__foot { flex-direction: column; gap: 8px; }
+  .menu__foot { flex-direction: column; align-items: flex-end; gap: 8px; left: var(--m); }
   .lbl--bim { display: none; }
   .works { padding-top: 14vh; }
   .works__side { grid-column: 1 / -1; }

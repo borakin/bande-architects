@@ -103,7 +103,8 @@ const loaderPct = $('#loaderPct');
 let shown = 0;
 
 /* ───────── lenis ───────── */
-const lenis = new Lenis({ lerp: reduced ? 1 : 0.1, wheelMultiplier: 1, touchMultiplier: 1.5, autoRaf: false });
+// touch goes through Lenis too (vertical only, so the works rail still swipes sideways), so scrollGate sees every gesture
+const lenis = new Lenis({ lerp: reduced ? 1 : 0.1, wheelMultiplier: 1, touchMultiplier: 1.5, autoRaf: false, syncTouch: true, gestureOrientation: 'vertical', virtualScroll: (d) => scrollGate(d) });
 lenis.stop();
 gsap.ticker.lagSmoothing(0);
 new ResizeObserver(layout).observe(works.el);
@@ -209,6 +210,47 @@ function bindMenu() {
 }
 $('#menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('is-open')));
 document.querySelector('.brand').addEventListener('click', (e) => { e.preventDefault(); closeProject(); setMenu(false); lenis.scrollTo(0, { duration: 2.4 }); });
+
+/* ───────── scroll from content to content ─────────
+   Between two chapters there is nothing to read, so one wheel turn or swipe glides the page to the next
+   chapter, or into the works section. Input during the glide, and the tail of that same gesture, is ignored.
+   Inside the works section the page scrolls freely, like any page. */
+const snap = { busy: false, armed: true, last: 0 };
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function stops() {
+  return CHAPTERS.map((c) => (c.id === 'archive' ? S.top : yFromP(Math.max(0, Math.min(1, c.hold)))));
+}
+function scrollGate({ deltaX, deltaY, event }) {
+  if (view.intro < 1 || openIndex >= 0 || menu.classList.contains('is-open') || !(S.Lf > 0)) return true;
+  if (event.type === 'touchstart' || event.type === 'touchend') return true;
+  const block = () => { if (event.cancelable) event.preventDefault(); return false; };
+  const now = performance.now(), quiet = now - snap.last > 200;
+  snap.last = now;
+  if (snap.busy) return block();
+  if (!snap.armed) { if (!quiet) return block(); snap.armed = true; }
+  if (Math.abs(deltaX) > Math.abs(deltaY) || Math.abs(deltaY) < 1) return true;
+  const y = lenis.targetScroll, dir = Math.sign(deltaY);
+  const top = S.top, end = S.top + Math.max(0, S.Wh - innerHeight);
+  if (y > top - 2 && y < end + 2 && !(dir < 0 && y <= top + 2) && !(dir > 0 && y >= end - 2)) {
+    // a free step that would run past the grid stops at its edge; the next turn carries on from there
+    const edge = dir > 0 ? end : top;
+    if ((y + deltaY - edge) * dir <= 0) return true;
+    lenis.scrollTo(edge);
+    return block();
+  }
+  const st = stops();
+  let target = dir > 0 ? (st.find((s) => s > y + 4) ?? lenis.limit) : ([...st].reverse().find((s) => s < y - 4) ?? 0);
+  if (dir < 0 && target === top && y > end + 4) target = end; // coming back up, land on the last row of works
+  if (Math.abs(target - y) < 4) return true;
+  snap.busy = true; snap.armed = false;
+  const dist = Math.abs(target - lenis.scroll);
+  lenis.scrollTo(target, {
+    duration: reduced ? 0.01 : Math.min(2.4, Math.max(1.1, (dist / innerHeight) * 0.45)),
+    easing: ease, lock: true, force: true,
+    onComplete: () => { snap.busy = false; },
+  });
+  return block();
+}
 
 /* ───────── case view: a card opens into the full project ───────── */
 // the page owns its scroll: stepping back over a case entry must not let the browser jump to an old position
@@ -367,7 +409,7 @@ function frame(dt, raw = dt) {
   // lens shift keeps the model clear of the type; portrait screens stack type above/below instead
   const keep = 1 - view.menu * 0.6;
   baseShift.multiplyScalar(keep);
-  baseShift.x += view.menu * 0.2;
+  baseShift.x -= view.menu * 0.2; // the menu stands on the right: the model steps left
   if (aspect < 1) baseShift.set(0.3 * band(ps, 0.69, 0.885, 0.02), -0.03 * keep);
   shift.lerp(baseShift, k);
   const W = innerWidth, H = innerHeight;
