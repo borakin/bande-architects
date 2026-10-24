@@ -216,6 +216,7 @@ document.querySelector('.brand').addEventListener('click', (e) => { e.preventDef
    chapter, or into the works section. Input during the glide, and the tail of that same gesture, is ignored.
    Inside the works section the page scrolls freely, like any page. */
 const snap = { busy: false, armed: true, last: 0 };
+const SNAP_SPEED = 0.7; // 1 = the original glide; lower is slower
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 function stops() {
   return CHAPTERS.map((c) => (c.id === 'archive' ? S.top : yFromP(Math.max(0, Math.min(1, c.hold)))));
@@ -245,7 +246,7 @@ function scrollGate({ deltaX, deltaY, event }) {
   snap.busy = true; snap.armed = false;
   const dist = Math.abs(target - lenis.scroll);
   lenis.scrollTo(target, {
-    duration: reduced ? 0.01 : Math.min(2.4, Math.max(1.1, (dist / innerHeight) * 0.45)),
+    duration: reduced ? 0.01 : Math.min(2.4, Math.max(1.1, (dist / innerHeight) * 0.45)) / SNAP_SPEED,
     easing: ease, lock: true, force: true,
     onComplete: () => { snap.busy = false; },
   });
