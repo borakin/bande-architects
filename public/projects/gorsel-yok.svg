@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" width="1600" height="1200">
+  <defs>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="1.6" fill="#141414" fill-opacity=".09"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1200" fill="#e6e1d7"/>
+  <rect width="1600" height="1200" fill="url(#dots)"/>
+  <g fill="none" stroke="#141414" stroke-opacity=".35" stroke-width="3">
+    <path d="M60 110V60h50M1540 110V60h-50M60 1090v50h50M1540 1090v50h-50"/>
+  </g>
+  <g transform="translate(800 600)">
+    <rect x="-210" y="-48" width="420" height="96" fill="#e6e1d7" stroke="#141414" stroke-opacity=".25" stroke-width="3"/>
+    <text y="15" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="40" letter-spacing="7" fill="#141414" fill-opacity=".6">GÖRSEL YOK</text>
+  </g>
+</svg>

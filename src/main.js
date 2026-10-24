@@ -40,6 +40,7 @@ const narrative = new Narrative(film);
 const S = { Lf: 0, Y1: 0, Wh: 0, A: 0, B: 0, top: 0 };
 function layout() {
   const vh = innerHeight;
+  if (!(vh > 0)) return; // hidden or zero-size window: keep the last good layout
   S.Lf = 10.5 * vh;
   S.Y1 = ARCHIVE_HOLD * S.Lf;
   S.A = 0.07 * S.Lf; S.B = 0.115 * S.Lf;
@@ -51,6 +52,7 @@ function layout() {
 }
 function pFromY(y) {
   const { Lf, Y1, Wh, A, B } = S, e = Y1 + Wh;
+  if (!(Lf > 0 && A > 0 && B > 0)) return 0;
   if (y <= Y1) return y / Lf;
   if (y <= e) return ARCHIVE_HOLD;
   if (y <= e + A) return ARCHIVE_HOLD + ((y - e) / A) * (0.885 - ARCHIVE_HOLD);
@@ -72,6 +74,12 @@ try {
   narrative.render(C);
   works.render(C);
   $('#loader').remove();
+  // the rest of the script needs WebGL, so the case view gets its own small wiring here
+  const shut = () => { works.close(); document.body.classList.remove('project-open'); };
+  works.onPick = (i, from) => { document.body.classList.add('project-open'); works.open(i, { from }); };
+  $('#caseBack').addEventListener('click', shut);
+  $('#caseNext').addEventListener('click', () => works.open((works.index + 1) % C.projects.length));
+  window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && works.isOpen) shut(); });
   throw e;
 }
 
@@ -202,22 +210,37 @@ $('#menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('
 document.querySelector('.brand').addEventListener('click', (e) => { e.preventDefault(); closeProject(); setMenu(false); lenis.scrollTo(0, { duration: 2.4 }); });
 
 /* ───────── case view: a card opens into the full project ───────── */
+let pushedCase = false; // the open case added its own history entry, so closing steps back over it
 function openProject(i, { from, instant } = {}) {
   if (i < 0 || i >= C.projects.length) return;
   setMenu(false);
+  const wasOpen = openIndex >= 0;
   openIndex = i;
-  if (location.hash !== `#/${C.projects[i].slug}`) history.pushState(null, '', `#/${C.projects[i].slug}`);
+  const hash = `#/${C.projects[i].slug}`;
+  if (location.hash !== hash) {
+    if (wasOpen) history.replaceState(null, '', hash);
+    else { history.pushState(null, '', hash); pushedCase = true; }
+  }
   lenis.stop();
   document.body.classList.add('project-open');
+  film.inert = true;
   works.open(i, { from, instant });
   setTimeout(() => $('#caseBack').focus({ preventScroll: true, focusVisible: false }), 700);
 }
 function closeProject() {
   if (openIndex < 0) return;
+  const i = openIndex;
   openIndex = -1;
   document.body.classList.remove('project-open');
-  if (location.hash.startsWith('#/')) history.pushState(null, '', location.pathname);
-  works.close(() => lenis.start());
+  film.inert = false;
+  if (location.hash.startsWith('#/')) {
+    if (pushedCase) history.back(); else history.replaceState(null, '', location.pathname + location.search);
+  }
+  pushedCase = false;
+  works.close(() => {
+    lenis.start();
+    works.el.querySelector(`.card[data-i="${i}"]`)?.focus({ preventScroll: true });
+  });
 }
 $('#caseBack').addEventListener('click', closeProject);
 $('#caseNext').addEventListener('click', () => openProject((openIndex + 1) % C.projects.length));
@@ -264,12 +287,21 @@ function adapt(dt) {
 
 /* ───────── frame ───────── */
 const hud = { no: $('#chapterNo'), label: $('#chapterLabel'), bar: $('#progressBar') };
+const hudTop = $('.hud--top');
+// page content scrolls under the top bar only inside the works section: the bar takes the ground there
+function barSolid() {
+  const r = works.el.getBoundingClientRect();
+  document.body.classList.toggle('bar-solid', r.top < hudTop.offsetHeight && r.bottom > 0);
+}
+window.addEventListener('scroll', barSolid, { passive: true });
+window.addEventListener('resize', barSolid);
 let lastChapter = -1, time = 0;
 function frame(dt, raw = dt) {
   time += dt;
   lenis.raf(time * 1000);
-  const p = lenis.limit > 0 ? pFromY(lenis.scroll) : 0;
-  ps = firstFrame || reduced ? p : ps + (p - ps) * (1 - Math.exp(-dt * 14));
+  let p = lenis.limit > 0 ? pFromY(lenis.scroll) : 0;
+  if (!Number.isFinite(p)) p = Number.isFinite(ps) ? ps : 0;
+  ps = firstFrame || reduced || !Number.isFinite(ps) ? p : ps + (p - ps) * (1 - Math.exp(-dt * 14));
   firstFrame = false;
 
   // blocks

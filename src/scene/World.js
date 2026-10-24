@@ -27,6 +27,8 @@ class FilmEffect extends Effect {
 
 export class World {
   constructor(canvas, { mobile }) {
+    // dev only: ?nogl shows the page a visitor without WebGL gets
+    if (import.meta.env.DEV && location.search.includes('nogl')) throw new Error('WebGL disabled for testing');
     this.mobile = mobile;
     const r = new WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: true });
     this.dprMax = mobile ? 1.5 : 1.75;
