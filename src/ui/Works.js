@@ -28,8 +28,8 @@ export class Works {
     const cards = C.projects.map((p, i) => `
       <li class="works__item" style="--n:${i}">
         <a class="card" href="#/${p.slug}" data-i="${i}">
-          <span class="card__img"><img src="${photo(p.img)}" alt="${p.title}" width="1600" height="1200" loading="lazy" decoding="async"></span>
-          <span class="card__txt"><b>${p.title}${p.award ? MEDAL(C.ui.award) : ''}</b><em>${[p.place, p.year].filter(Boolean).join(' · ')}</em><span>${p.type}</span></span>
+          <span class="card__img"><img src="${photo(p.img)}" alt="${p.title}" width="1600" height="1200" loading="lazy" decoding="async">${p.award ? `<span class="card__medal">${MEDAL(C.ui.award)}</span>` : ''}</span>
+          <span class="card__txt"><b>${p.title}</b><em>${[p.place, p.year].filter(Boolean).join(' · ')}</em><span>${p.type}</span></span>
         </a>
       </li>`).join('');
     this.el.innerHTML = `
