@@ -78,6 +78,7 @@ try {
   const shut = () => { works.close(); document.body.classList.remove('project-open'); };
   works.onPick = (i, from) => { document.body.classList.add('project-open'); works.open(i, { from }); };
   $('#caseBack').addEventListener('click', shut);
+  $('#caseClose').addEventListener('click', shut);
   $('#caseNext').addEventListener('click', () => works.open((works.index + 1) % C.projects.length));
   window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && works.isOpen) shut(); });
   throw e;
@@ -210,6 +211,8 @@ $('#menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('
 document.querySelector('.brand').addEventListener('click', (e) => { e.preventDefault(); closeProject(); setMenu(false); lenis.scrollTo(0, { duration: 2.4 }); });
 
 /* ───────── case view: a card opens into the full project ───────── */
+// the page owns its scroll: stepping back over a case entry must not let the browser jump to an old position
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 let pushedCase = false; // the open case added its own history entry, so closing steps back over it
 function openProject(i, { from, instant } = {}) {
   if (i < 0 || i >= C.projects.length) return;
@@ -237,12 +240,23 @@ function closeProject() {
     if (pushedCase) history.back(); else history.replaceState(null, '', location.pathname + location.search);
   }
   pushedCase = false;
+  // bring the project's card into view first, so the case folds back into the card it came from
+  const card = works.el.querySelector(`.card[data-i="${i}"]`);
+  if (card) {
+    const rail = card.closest('.works__grid');
+    if (rail.scrollWidth > rail.clientWidth) rail.scrollLeft = card.parentElement.offsetLeft - rail.offsetLeft;
+    const r = card.getBoundingClientRect();
+    if (r.top < hudTop.offsetHeight || r.bottom > innerHeight) {
+      lenis.scrollTo(lenis.scroll + r.top - Math.max(hudTop.offsetHeight, (innerHeight - r.height) / 2), { immediate: true, force: true });
+    }
+  }
   works.close(() => {
     lenis.start();
     works.el.querySelector(`.card[data-i="${i}"]`)?.focus({ preventScroll: true });
   });
 }
 $('#caseBack').addEventListener('click', closeProject);
+$('#caseClose').addEventListener('click', closeProject);
 $('#caseNext').addEventListener('click', () => openProject((openIndex + 1) % C.projects.length));
 function routeFromHash() {
   const slug = location.hash.replace('#/', '');

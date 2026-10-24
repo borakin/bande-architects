@@ -161,6 +161,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .case figure { background: #151514 center / cover no-repeat; }
 .case figure img { display: block; width: 100%; height: auto; }
 .case__back { align-self: flex-start; font-size: 13px; }
+/* close: a cross at the top right, the same way out as the back link */
+.case__close { position: fixed; top: clamp(78px, 12vh, 122px); right: var(--m); z-index: 2; width: 48px; height: 48px; background: var(--paper); }
+.case__close::before, .case__close::after { content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 2px; background: var(--ink); transition: transform .5s cubic-bezier(.2,.7,.1,1); }
+.case__close::before { transform: translate(-50%, -50%) rotate(45deg); }
+.case__close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.case__close:hover::before, .case__close:focus-visible::before { transform: translate(-50%, -50%) rotate(135deg); }
+.case__close:hover::after, .case__close:focus-visible::after { transform: translate(-50%, -50%) rotate(45deg); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .case__back { border-bottom: 1px solid var(--ink); padding-bottom: 2px; }
 .case__idx { color: var(--ink-2); }
 .case__title { font-size: clamp(38px, 4.4vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: .92; }
@@ -246,6 +254,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .works__count { display: block; margin-top: 22px; font-family: var(--px); font-size: 10px; letter-spacing: .08em; color: var(--ink-2); }
   .works__count span { color: var(--ink); }
   .case__wrap { display: flex; flex-direction: column; gap: 0; padding-top: 76px; }
+  .case__close { top: 70px; width: 44px; height: 44px; }
   .case__hero { order: 1; margin: 0 calc(var(--m) * -1); }
   .case__side { order: 2; position: static; padding: 26px 0 0; gap: 18px; }
   .case__media { order: 3; margin: 28px calc(var(--m) * -1) 0; }
